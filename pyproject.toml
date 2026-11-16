@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sifr-ml-systems"
+version = "0.1.0"
+description = "Hardware-aware machine-learning systems engineering: PyTorch, JAX, Triton GPU kernels, correctness and reproducible benchmark evidence."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "torch>=2.15",
+  "numpy>=2.5",
+]
+
+[project.optional-dependencies]
+bench = ["triton>=3.9"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

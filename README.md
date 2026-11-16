@@ -51,7 +51,8 @@ On CPU, only the reference path is timed; the fused kernel requires CUDA and Tri
 ## Roadmap (unscripted — recorded as it actually happens)
 
 - [x] RMSNorm: reference + Triton fused kernel, CPU correctness test, CUDA-gated parity test
-- [ ] Verified RTX 4060 timings (blocked on this machine's GPU stack installation until recently; see git history)
+- [x] Verified RTX 4060 timings (see `EVIDENCE.md`, 2026-11-16)
+- [x] JAX 0.12.0.1 + CUDA 13 plugin recognized the GPU (`CudaDevice(id=0)`)
 - [ ] JAX reference path for the same kernel semantics
 - [ ] Fused elementwise attention comparison vs PyTorch eager and `scaled_dot_product_attention`
 - [ ] cuBLAS `torch.compile` vs hand-written Triton reductions

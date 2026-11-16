@@ -9,7 +9,7 @@ Hardware-aware machine-learning systems engineering. The project studies and imp
 - Correctness is defined by executable tests, not by narrative.
 - Benchmarks are reproducible commands with warmup, medians, and explicit hardware/driver reporting.
 - GPU claims are only made when the relevant path actually runs on the target GPU. GPU-specific tests skip cleanly on machines without CUDA.
-- This is a young project: it currently contains one working, reference-tested fused kernel (RMSNorm) compared across torch, Triton, torch.compile and JAX. It is not a complete training framework. On this GPU and these shapes, the JAX/XLA path was measured fastest; see `EVIDENCE.md`.
+- This is a young project: it now contains two working, reference-tested fused kernels (RMSNorm, fused attention) compared across torch, Triton, torch.compile, JAX and SDPA. It is not a complete training framework. On this GPU and these shapes, the JAX/XLA path was measured fastest for RMSNorm and PyTorch's fused SDPA leads on causal attention; see `EVIDENCE.md`.
 
 ## What exists today
 
@@ -22,6 +22,9 @@ Hardware-aware machine-learning systems engineering. The project studies and imp
 | `sifr_ml_systems.bench` | CUDA-event benchmark harness (warmup, median) |
 | `bench/compare_rmsnorm.py` | Reproducible four-backend comparison (`--backend all`) |
 | `tests/test_rmsnorm_parity.py` | fp32/fp16/bf16 parity: Triton vs reference vs torch.compile vs JAX |
+| `sifr_ml_systems.kernels.attention_triton` | FlashAttention-2-style fused attention forward (online softmax, causal support) |
+| `bench/compare_attention.py` | Reproducible attention comparison (`--backend all`) |
+| `tests/test_attention_parity.py` | fp32/fp16/bf16 parity × causal × shapes: Triton vs reference vs SDPA |
 
 ## Environment
 
@@ -59,7 +62,7 @@ On CPU, only the reference path is timed; the fused kernel requires CUDA and Tri
 - [x] JAX reference path for the same kernel semantics (`rmsnorm_jax`, `rmsnorm_jax_jit`)
 - [x] Cross-implementation parity tests (Triton / torch.compile / JAX vs reference) — 2026-11-16, `pytest -q` 18 passed
 - [x] Four-backend benchmark recorded with reproduction commands (`EVIDENCE.md`, 2026-11-16)
-- [ ] Fused elementwise attention comparison vs PyTorch eager and `scaled_dot_product_attention`
+- [x] Fused attention (FlashAttention-2-style online softmax, causal support) vs naive reference and SDPA — `EVIDENCE.md`, 2026-11-16
 - [ ] cuBLAS `torch.compile` vs hand-written Triton reductions
 - [ ] BF16 vs FP32 precision/throughput surface
 

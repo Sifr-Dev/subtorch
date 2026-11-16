@@ -42,3 +42,20 @@ Measured, not asserted: XLA's generated kernel beat the hand-written Triton kern
 Correctness after the change: `pytest -q` → **18 passed** (was 5). New parity suite `tests/test_rmsnorm_parity.py` covers fp32 (1e-5), fp16 and bf16 (2e-2), for Triton, torch.compile, JAX un-jitted and JAX jitted, plus a Triton-vs-JAX cross-check. JAX tests require a CUDA-capable JAX (`jax.devices()` with a CUDA platform) and skip cleanly otherwise.
 
 Commands: `python -m bench.compare_rmsnorm --rows 4096 --cols 4096 --dtype float16 --backend all` and the fp32 variant above. Re-run to reproduce; values are medians of 100 iterations after 10 warm-ups on the same machine.
+
+## 2026-11-16 (update) — Fused attention (`bench/compare_attention.py`)
+
+FlashAttention-style online-softmax forward in Triton (`sifr_ml_systems.kernels.attention_triton`), compared against the naive fp32 einsum reference and PyTorch SDPA (fused CUDA path). Warmup 10, 50 iterations, CUDA events, median. Command pattern: `python -m bench.compare_attention --batch B --heads H --seq S --head-dim D --dtype T [--causal] --backend all`.
+
+| Shape | dtype | causal | reference | SDPA | Triton fused |
+|---|---|---|---|---|---|
+| 4×16×1024×64 | float16 | no | 9.25 ms | 0.614 ms | **0.617 ms** |
+| 4×16×1024×64 | float16 | yes | 12.92 ms | **0.372 ms** | 0.632 ms |
+| 4×16×1024×64 | bfloat16 | no | 8.31 ms | 0.627 ms | **0.617 ms** |
+| 2×8×2048×128 | float16 | no | 9.18 ms | **1.245 ms** | 1.613 ms |
+
+Measured honestly: the Triton kernel matches PyTorch SDPA on fp16/bf16 seq=1024 head_dim=64 non-causal (within 1%), and trails SDPA on causal (0.632 vs 0.372 ms — SDPA reaches a vendor-tuned cuDNN/cutlass path on this GPU) and on head_dim=128/seq=2048 (1.613 vs 1.245 ms). The RKL is correct flash attention (online max/sum, fp32 accumulator, causal masking, IEEE `tl.dot` for fp32 inputs), but it is not vendor-tuned; both facts are recorded rather than rounded up.
+
+Implementation notes (same dtype semantics as the reference): q/k loads stay in input dtype and `tl.dot` uses tensor cores with fp32 accumulation; the softmax state (running max m, running denominator l, accumulator) is fp32; p is cast to the input dtype for the PV dot; fp32 inputs use `input_precision="ieee"` (TF32 tensor cores otherwise, ~1e-3 error, found by the fp32 parity test).
+
+Correctness after the change: `pytest -q` → **36 passed** (was 18). New parity suite `tests/test_attention_parity.py` covers fp32 (1e-5), fp16/bf16 (2e-2) × {causal, non-causal} × {seq 128/256/1024, head_dim 64/128} for Triton vs naive reference and vs SDPA. Attention tests require CUDA+Triton and skip cleanly otherwise.

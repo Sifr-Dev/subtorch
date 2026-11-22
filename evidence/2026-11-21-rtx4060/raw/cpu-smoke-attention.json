@@ -1,0 +1,88 @@
+{
+  "benchmark": "attention",
+  "environment": {
+    "python": "3.12.16",
+    "platform": "Linux-7.3.4-zen2-2-zen-x86_64-with-glibc2.44",
+    "torch": "2.15.0+cpu",
+    "torch_cuda": null,
+    "cuda_available": false,
+    "device": "cpu",
+    "triton": null,
+    "jax": null,
+    "numpy": "2.5.5"
+  },
+  "seed": 0,
+  "shape": [
+    1,
+    1,
+    32,
+    64
+  ],
+  "dtype": "float32",
+  "causal": false,
+  "reference": {
+    "device": "cpu",
+    "timing": "perf_counter_per_iteration",
+    "warmup": 1,
+    "iterations": 3,
+    "min_ms": 0.08704900028533302,
+    "median_ms": 0.094142000307329,
+    "mean_ms": 0.09681633309810422,
+    "max_ms": 0.10925799870165065,
+    "sample_stdev_ms": 0.011343453820193451,
+    "p05_ms": 0.08775830028753262,
+    "p95_ms": 0.10774639886221848,
+    "samples_ms": [
+      0.094142000307329,
+      0.08704900028533302,
+      0.10925799870165065
+    ],
+    "parity_vs_reference": {
+      "rtol": 1e-05,
+      "atol": 1e-05,
+      "passed": true,
+      "max_absolute_error": 0.0,
+      "mean_absolute_error": 0.0,
+      "max_relative_error_nonzero": 0.0,
+      "max_bound_excess": -1.000036354525946e-05,
+      "mismatched_elements": 0,
+      "num_elements": 2048
+    }
+  },
+  "sdpa": {
+    "device": "cpu",
+    "timing": "perf_counter_per_iteration",
+    "warmup": 1,
+    "iterations": 3,
+    "min_ms": 0.016218000382650644,
+    "median_ms": 0.017580001440364867,
+    "mean_ms": 0.018221334660969053,
+    "max_ms": 0.02086600215989165,
+    "sample_stdev_ms": 0.0023894479184943104,
+    "p05_ms": 0.016354200488422066,
+    "p95_ms": 0.02053740208793897,
+    "samples_ms": [
+      0.02086600215989165,
+      0.017580001440364867,
+      0.016218000382650644
+    ],
+    "parity_vs_reference": {
+      "rtol": 1e-05,
+      "atol": 1e-05,
+      "passed": true,
+      "max_absolute_error": 4.172325134277344e-07,
+      "mean_absolute_error": 2.9234524134835738e-08,
+      "max_relative_error_nonzero": 0.0007274075178429484,
+      "max_bound_excess": -9.954634151654318e-06,
+      "mismatched_elements": 0,
+      "num_elements": 2048
+    }
+  },
+  "triton_fused": {
+    "status": "not_run",
+    "reason": "CUDA required"
+  },
+  "schema_version": 1,
+  "recorded_at_utc": "2026-11-20T22:48:10.793001+00:00",
+  "raw_json_path": "/home/sifr/Workspaces/Sifr-Dev-Engineering-Renaissance/repositories/subtorch/evidence/2026-11-21-rtx4060/raw/cpu-smoke-attention.json"
+}

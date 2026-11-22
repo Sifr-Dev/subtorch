@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/sifr/Workspaces/Sifr-Dev-Engineering-Renaissance/repositories/subtorch/bench/compare_rmsnorm.py", line 106, in <module>
+    main()
+  File "/home/sifr/Workspaces/Sifr-Dev-Engineering-Renaissance/repositories/subtorch/bench/compare_rmsnorm.py", line 98, in main
+    measure("jax_jit", run_jax, convert=torch.from_dlpack)
+  File "/home/sifr/Workspaces/Sifr-Dev-Engineering-Renaissance/repositories/subtorch/bench/compare_rmsnorm.py", line 62, in measure
+    result["parity_vs_reference"] = error_metrics(out, expected, rtol, atol)
+                                                       ^^^^^^^^
+NameError: cannot access free variable 'expected' where it is not associated with a value in enclosing scope

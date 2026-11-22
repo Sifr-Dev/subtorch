@@ -1,0 +1,44 @@
+{
+  "schema": "correctness-runs",
+  "runs": [
+    {
+      "command": ".venv-cpu/bin/python -m pytest -q -m not gpu",
+      "environment": {
+        "python": "3.12.16",
+        "torch": "2.15.0+cpu",
+        "numpy": "2.5.5",
+        "pytest": "9.0.2"
+      },
+      "passed": 10,
+      "deselected": 32,
+      "duration_seconds": 2.65,
+      "gpu_tests_executed": false
+    },
+    {
+      "command": ".venv/bin/python -m pytest -q",
+      "phase": "before optional JAX group",
+      "passed": 35,
+      "skipped": 7,
+      "duration_seconds": 5.33,
+      "skip_reason": "JAX dependency not installed"
+    },
+    {
+      "command": ".venv/bin/python -m pytest -q",
+      "phase": "with optional CUDA JAX group",
+      "environment": {
+        "python": "3.12.16",
+        "torch": "2.15.0+cu132",
+        "numpy": "2.5.5",
+        "triton": "3.9.0",
+        "jax": "0.12.1",
+        "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU"
+      },
+      "passed": 42,
+      "skipped": 0,
+      "duration_seconds": 7.11
+    }
+  ],
+  "schema_version": 1,
+  "recorded_at_utc": "2026-11-20T23:28:52.977771+00:00",
+  "raw_json_path": "/home/sifr/Workspaces/Sifr-Dev-Engineering-Renaissance/repositories/subtorch/evidence/2026-11-21-rtx4060/raw/correctness-results.json"
+}

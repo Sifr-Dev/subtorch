@@ -1,0 +1,90 @@
+{
+  "benchmark": "rmsnorm",
+  "environment": {
+    "python": "3.12.16",
+    "platform": "Linux-7.3.4-zen2-2-zen-x86_64-with-glibc2.44",
+    "torch": "2.15.0+cpu",
+    "torch_cuda": null,
+    "cuda_available": false,
+    "device": "cpu",
+    "triton": null,
+    "jax": null,
+    "numpy": "2.5.5"
+  },
+  "seed": 0,
+  "eps": 1e-06,
+  "shape": [
+    8,
+    64
+  ],
+  "dtype": "float32",
+  "reference": {
+    "device": "cpu",
+    "timing": "perf_counter_per_iteration",
+    "warmup": 1,
+    "iterations": 3,
+    "min_ms": 0.023990996851352975,
+    "median_ms": 0.026726000214694068,
+    "mean_ms": 0.028618998233772192,
+    "max_ms": 0.03513999763526954,
+    "sample_stdev_ms": 0.005810562429328018,
+    "p05_ms": 0.024264497187687084,
+    "p95_ms": 0.03429859789321199,
+    "samples_ms": [
+      0.026726000214694068,
+      0.023990996851352975,
+      0.03513999763526954
+    ],
+    "parity_vs_reference": {
+      "rtol": 1e-05,
+      "atol": 1e-05,
+      "passed": true,
+      "max_absolute_error": 0.0,
+      "mean_absolute_error": 0.0,
+      "max_relative_error_nonzero": 0.0,
+      "max_bound_excess": -1.0008623576140963e-05,
+      "mismatched_elements": 0,
+      "num_elements": 512
+    }
+  },
+  "triton_fused": {
+    "status": "not_run",
+    "reason": "CUDA required"
+  },
+  "torch_compile": {
+    "device": "cpu",
+    "timing": "perf_counter_per_iteration",
+    "warmup": 1,
+    "iterations": 3,
+    "min_ms": 0.020886000129394233,
+    "median_ms": 0.021447001927299425,
+    "mean_ms": 0.024412000736144062,
+    "max_ms": 0.030903000151738524,
+    "sample_stdev_ms": 0.005628364399561294,
+    "p05_ms": 0.020942100309184752,
+    "p95_ms": 0.029957400329294614,
+    "samples_ms": [
+      0.030903000151738524,
+      0.021447001927299425,
+      0.020886000129394233
+    ],
+    "parity_vs_reference": {
+      "rtol": 1e-05,
+      "atol": 1e-05,
+      "passed": true,
+      "max_absolute_error": 4.76837158203125e-07,
+      "mean_absolute_error": 4.822527444048319e-08,
+      "max_relative_error_nonzero": 2.3288170325486135e-07,
+      "max_bound_excess": -1.0008507160819136e-05,
+      "mismatched_elements": 0,
+      "num_elements": 512
+    }
+  },
+  "jax_jit": {
+    "status": "not_run",
+    "reason": "optional JAX dependency group not installed"
+  },
+  "schema_version": 1,
+  "recorded_at_utc": "2026-11-20T22:48:08.201024+00:00",
+  "raw_json_path": "/home/sifr/Workspaces/Sifr-Dev-Engineering-Renaissance/repositories/subtorch/evidence/2026-11-21-rtx4060/raw/cpu-smoke-rmsnorm.json"
+}

@@ -9,15 +9,20 @@ description = "Hardware-aware machine-learning systems engineering: PyTorch, JAX
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-  "torch>=2.15",
-  "numpy>=2.5",
+  "torch==2.15.0",
+  "numpy==2.5.5",
 ]
 
 [project.optional-dependencies]
-bench = ["triton>=3.9"]
+bench = ["triton==3.9.0"]
+
+[dependency-groups]
+dev = ["pytest>=9,<10"]
+jax = ["jax[cuda13]>=0.12,<0.13"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = ["gpu: requires an actual CUDA device; run only in a GPU-enabled environment"]

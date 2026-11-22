@@ -1,0 +1,16 @@
+{
+  "schema": "command-result",
+  "command": ".venv-cpu/bin/python -m pytest -q -m not gpu",
+  "python": "3.12.16",
+  "torch": "2.15.0+cpu",
+  "numpy": "2.5.5",
+  "pytest": "9.0.2",
+  "cuda_available": false,
+  "passed": 10,
+  "deselected": 32,
+  "duration_seconds": 2.65,
+  "gpu_tests_executed": false,
+  "schema_version": 1,
+  "recorded_at_utc": "2026-11-20T23:02:32.297213+00:00",
+  "raw_json_path": "/home/sifr/Workspaces/Sifr-Dev-Engineering-Renaissance/repositories/subtorch/evidence/2026-11-21-rtx4060/raw/cpu-tests.json"
+}

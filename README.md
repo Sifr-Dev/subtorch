@@ -32,27 +32,48 @@ Hardware-aware machine-learning systems engineering. The project studies and imp
 - GPU path: NVIDIA driver + CUDA-enabled PyTorch (benchmarked on an RTX 4060).
 - CPU-only machines run the reference tests; the fused kernel test skips cleanly.
 
-## Install
+## Reproducible environment
+
+The lock file records exact package versions and hashes. These commands use `uv`'s managed Python 3.12 and keep both environments inside this repository. No Nix or system Python changes are needed.
 
 ```bash
-python3.12 -m venv .venv
-. .venv/bin/activate
-pip install -e .
+uv python install 3.12
+uv sync --python 3.12 --frozen --extra bench --group dev --no-group jax
+# Optional, separately resolved dependency group (CUDA 13 build):
+uv sync --python 3.12 --frozen --extra bench --group dev --group jax
 ```
 
-## Run correctness tests
+The base environment contains `torch==2.15.0`, `triton==3.9.0`, and `numpy==2.5.5`. The separately selectable JAX group resolves compatibly with these versions (`jax==0.12.1`). `uv sync --group jax` replaces the environment's selected dependency set, so rerun the base `--no-group jax` command to remove it. JAX is never needed for the reference/Triton/SDPA tests.
+
+For a deliberately CPU-only test environment (also proves CUDA tests are not silently skipped by an unexpected CUDA wheel):
 
 ```bash
-pytest -q
+uv venv --python 3.12 .venv-cpu
+uv pip install --python .venv-cpu/bin/python torch==2.15.0 --index-url https://download.pytorch.org/whl/cpu
+uv pip install --python .venv-cpu/bin/python -e . --group dev
+.venv-cpu/bin/python -c 'import torch; assert not torch.cuda.is_available(); assert torch.version.cuda is None'
+.venv-cpu/bin/python -m pytest -q -m "not gpu"
 ```
 
-## Run the RMSNorm benchmark
+`pytest -q` in a CUDA environment runs CPU and GPU parity tests. `pytest -q -m gpu` explicitly selects GPU tests. A skipped GPU test is not evidence of GPU correctness.
+
+## Benchmarks: complete raw evidence
+
+The benchmark commands below require an actual CUDA device; they fail instead of replacing GPU measurements with CPU results. Each emits complete JSON, and `--output` persists it. Records include Python/PyTorch/Triton versions, GPU name/capability/memory/driver, per-iteration CUDA-event timings, min/median/mean/max, sample standard deviation, p05/p95, PyTorch CUDA allocator peaks, and actual numerical error bounds.
 
 ```bash
-python bench/compare_rmsnorm.py --rows 4096 --cols 4096 --dtype float16 --backend all
+.venv/bin/python -m bench.compare_rmsnorm --rows 4096 --cols 4096 --dtype float16 \
+  --backend all --warmup 10 --iterations 100 \
+  --output evidence/rtx4060/rmsnorm-fp16.json
+.venv/bin/python -m bench.compare_attention --batch 4 --heads 16 --seq 1024 --head-dim 64 \
+  --dtype float16 --backend all --warmup 10 --iterations 50 \
+  --output evidence/rtx4060/attention-fp16.json
+# Add --causal for the causal-attention configuration.
 ```
 
-On CPU, only the reference path is timed; the fused kernel requires CUDA and Triton.
+The parity check runs before timing, so initial JIT compilation is outside both warm-up and timed samples. JAX calls are explicitly awaited for completion. CUDA events measure callable execution on the current CUDA stream, not full training-step wall time. Peak allocator statistics are process-relative, reset after warm-up, and are not exclusive whole-GPU memory usage. `samples_ms` retains every sample rather than reporting only a median. The original RMSNorm benchmark used `weight = ones`; this is retained for comparability, while the CUDA parity tests exercise varying weights.
+
+CI's `CPU-only correctness` job uses an explicit CPU-only wheel on GitHub-hosted Ubuntu. The `CUDA correctness` job is manual-dispatch-only and requires a self-hosted runner labeled `gpu` and `rtx4060`; it is not a hosted-GPU claim. See `EVIDENCE.md` for measured local results and raw JSON paths.
 
 ## Roadmap (unscripted — recorded as it actually happens)
 

@@ -15,7 +15,10 @@ import torch
 
 from sifr_ml_systems.kernels.rmsnorm import rmsnorm
 
-pytestmark = pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA required")
+pytestmark = [
+    pytest.mark.gpu,
+    pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA required"),
+]
 
 
 def _reference(x, weight, eps=1e-6):

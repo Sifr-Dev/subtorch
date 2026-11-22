@@ -1,7 +1,5 @@
 """Correctness contract for the RMSNorm implementations (CPU-verifiable)."""
 
-import math
-
 import pytest
 import torch
 
@@ -38,6 +36,7 @@ def test_rmsnorm_is_finite_for_large_values() -> None:
     assert torch.isfinite(out).all()
 
 
+@pytest.mark.gpu
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA not available")
 def test_rmsnorm_triton_matches_reference() -> None:
     pytest.importorskip("triton")

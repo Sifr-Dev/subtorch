@@ -7,11 +7,10 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import json
 
 import torch
 
-from sifr_ml_systems.bench import cuda_time
+from sifr_ml_systems.bench import cuda_time, environment_info, error_metrics, require_cuda, write_json
 from sifr_ml_systems.kernels.attention import attention_reference, attention_sdpa
 
 
@@ -25,6 +24,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--warmup", type=int, default=10)
     parser.add_argument("--iterations", type=int, default=50)
     parser.add_argument("--causal", action="store_true", default=False)
+    parser.add_argument("--device", choices=["cuda", "cpu"], default="cuda")
+    parser.add_argument("--output", help="Write complete raw JSON to this path (inside the chosen workspace).")
     parser.add_argument(
         "--backend",
         choices=["reference", "sdpa", "triton", "all"],
@@ -35,8 +36,12 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+    if min(args.batch, args.heads, args.seq, args.head_dim) <= 0:
+        raise ValueError("all shape dimensions must be positive")
+    if args.seq % 32:
+        raise ValueError("seq must be a multiple of 32 for the current Triton kernel")
     dtype = getattr(torch, args.dtype)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = require_cuda() if args.device == "cuda" else torch.device("cpu")
 
     torch.manual_seed(0)
     q = torch.randn(args.batch, args.heads, args.seq, args.head_dim, device=device, dtype=dtype)
@@ -44,35 +49,39 @@ def main() -> None:
     v = torch.randn(args.batch, args.heads, args.seq, args.head_dim, device=device, dtype=dtype)
 
     results = {
-        "device": str(device),
+        "benchmark": "attention",
+        "environment": environment_info(device),
+        "seed": 0,
         "shape": [args.batch, args.heads, args.seq, args.head_dim],
         "dtype": args.dtype,
         "causal": args.causal,
     }
 
     want_all = args.backend == "all"
+    expected = attention_reference(q, k, v, causal=args.causal)
+    rtol = atol = 1e-5 if dtype == torch.float32 else 2e-2
+
+    def measure(name: str, fn) -> None:
+        out = fn()
+        result = cuda_time(fn, args.warmup, args.iterations, device=device)
+        result["parity_vs_reference"] = error_metrics(out, expected, rtol, atol)
+        results[name] = result
 
     if want_all or args.backend == "reference":
-        results["reference"] = cuda_time(
-            lambda: attention_reference(q, k, v, causal=args.causal), args.warmup, args.iterations
-        )
+        measure("reference", lambda: attention_reference(q, k, v, causal=args.causal))
 
     if want_all or args.backend == "sdpa":
-        results["sdpa"] = cuda_time(
-            lambda: attention_sdpa(q, k, v, causal=args.causal), args.warmup, args.iterations
-        )
+        measure("sdpa", lambda: attention_sdpa(q, k, v, causal=args.causal))
 
     if want_all or args.backend == "triton":
         if device.type == "cuda":
             from sifr_ml_systems.kernels.attention_triton import attention_triton
 
-            results["triton_fused"] = cuda_time(
-                lambda: attention_triton(q, k, v, causal=args.causal), args.warmup, args.iterations
-            )
+            measure("triton_fused", lambda: attention_triton(q, k, v, causal=args.causal))
         else:
-            results["triton_fused"] = None
+            results["triton_fused"] = {"status": "not_run", "reason": "CUDA required"}
 
-    print(json.dumps(results, indent=2))
+    write_json(results, args.output)
 
 
 if __name__ == "__main__":

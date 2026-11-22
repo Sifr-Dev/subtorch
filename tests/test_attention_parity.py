@@ -13,7 +13,10 @@ import torch
 
 from sifr_ml_systems.kernels.attention import attention_reference, attention_sdpa
 
-pytestmark = pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA required")
+pytestmark = [
+    pytest.mark.gpu,
+    pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA required"),
+]
 
 
 @pytest.mark.parametrize("dtype,tolr", [(torch.float32, 1e-5), (torch.float16, 2e-2), (torch.bfloat16, 2e-2)])

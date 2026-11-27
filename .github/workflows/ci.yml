@@ -31,10 +31,18 @@ jobs:
           uv venv --python 3.12 .venv-cpu
           uv pip install --python .venv-cpu/bin/python torch==2.15.0 --index-url https://download.pytorch.org/whl/cpu
           uv pip install --python .venv-cpu/bin/python -e . --group dev
+      - name: Verify the lockfile matches pyproject
+        run: |
+          uv lock --check
+          git diff --exit-code -- uv.lock
       - name: Assert CPU wheel and run CPU tests only
         run: |
           .venv-cpu/bin/python -c 'import torch; assert not torch.cuda.is_available(); assert torch.version.cuda is None'
           .venv-cpu/bin/python -m pytest -q -m "not gpu"
+      # 32 of 44 tests are CUDA-gated. Without this, the CPU job would keep
+      # passing even if a kernel lost its last ungated test.
+      - name: Verify CPU-selected tests cover the CPU-capable kernels
+        run: .venv-cpu/bin/python .github/scripts/check-cpu-coverage.py
 
   gpu-correctness:
     name: CUDA correctness (self-hosted, opt-in)

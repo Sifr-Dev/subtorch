@@ -1,92 +1,152 @@
-![SIFR identity V2 — the cipher disk at shift zero](.github/assets/readme-header-dark.png)
+# Darkmatter
 
-# sifr-ml-systems
+Hardware-aware machine-learning kernels with reproducible, cross-framework evidence.
 
-Hardware-aware machine-learning systems engineering. The project studies and implements computation below the high-level framework interface: GPU kernels, memory movement, numerical correctness, and measured performance — with reproducible evidence rather than wrapper demos.
+<p>
+  <a href="https://github.com/Sifr-Dev/Darkmatter/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Sifr-Dev/Darkmatter/actions/workflows/ci.yml/badge.svg"></a>
+  <img alt="Python 3.12" src="https://img.shields.io/badge/PYTHON-3.12-3776ab?logo=python&logoColor=white">
+  <img alt="PyTorch 2.15" src="https://img.shields.io/badge/PYTORCH-2.15-ee4c2c?logo=pytorch&logoColor=white">
+  <img alt="Tests: 54" src="https://img.shields.io/badge/TESTS-54-39c5cf">
+  <img alt="License: MIT" src="https://img.shields.io/badge/LICENSE-MIT-2ea043">
+</p>
 
-## Scope and honesty boundaries
+> Distribution/package name remains `sifr-ml-systems` and the import package
+> remains `sifr_ml_systems`; the product name is Darkmatter.
 
-- Correctness is defined by executable tests, not by narrative.
-- Benchmarks are reproducible commands with warmup, medians, and explicit hardware/driver reporting.
-- GPU claims are only made when the relevant path actually runs on the target GPU. GPU-specific tests skip cleanly on machines without CUDA.
-- This is a young project: it now contains two working, reference-tested fused kernels (RMSNorm, fused attention) compared across torch, Triton, torch.compile, JAX and SDPA. It is not a complete training framework. On this GPU and these shapes, the JAX/XLA path was measured fastest for RMSNorm and PyTorch's fused SDPA leads on causal attention; see `EVIDENCE.md`.
+## What it is
 
-## What exists today
+Darkmatter studies and implements computation below the high-level framework
+interface: GPU kernels, memory movement, numerical correctness, and measured
+performance. It currently contains two reference-tested fused kernels — RMSNorm
+and FlashAttention-2-style attention — compared against PyTorch, `torch.compile`,
+JAX and SDPA. It is a kernel and evidence project, not a training framework.
 
-| Component | State |
-|---|---|
-| `sifr_ml_systems.kernels.rmsnorm` | Reference RMSNorm with matching manual-formula test |
-| `sifr_ml_systems.kernels.rmsnorm_triton` | Fused Triton kernel, one program per row, single pass |
-| `sifr_ml_systems.kernels.rmsnorm_jax` | JAX reference (`rmsnorm_jax`) and `rmsnorm_jax_jit` (XLA-compiled) |
-| `sifr_ml_systems.kernels.rmsnorm_torch` | `torch.compile`'d reference baseline |
-| `sifr_ml_systems.bench` | CUDA-event benchmark harness (warmup, median) |
-| `bench/compare_rmsnorm.py` | Reproducible four-backend comparison (`--backend all`) |
-| `tests/test_rmsnorm_parity.py` | fp32/fp16/bf16 parity: Triton vs reference vs torch.compile vs JAX |
-| `sifr_ml_systems.kernels.attention_triton` | FlashAttention-2-style fused attention forward (online softmax, causal support) |
-| `bench/compare_attention.py` | Reproducible attention comparison (`--backend all`) |
-| `tests/test_attention_parity.py` | fp32/fp16/bf16 parity × causal × shapes: Triton vs reference vs SDPA |
+## Current capabilities
 
-## Environment
+- **RMSNorm reference with a matching manual-formula test** —
+  `src/sifr_ml_systems/kernels/rmsnorm.py`, `tests/test_rmsnorm.py` (5 tests).
+- **Fused Triton RMSNorm** (one program per row, single pass) —
+  `src/sifr_ml_systems/kernels/rmsnorm_triton.py`; fp32/fp16/bf16 parity in
+  `tests/test_rmsnorm_parity.py` (13 tests).
+- **`torch.compile` and JAX/XLA baselines for the same semantics** —
+  `rmsnorm_torch.py`, `rmsnorm_jax.py`; parity is part of the same suite. JAX is
+  an optional dependency group and skips cleanly when absent.
+- **Fused attention forward with online softmax and causal masking** —
+  `src/sifr_ml_systems/kernels/attention_triton.py`; Triton vs naive reference vs
+  SDPA parity across dtypes, causal/non-causal and shapes in
+  `tests/test_attention_parity.py` (18 tests).
+- **CPU correctness path** — `tests/test_attention_cpu.py` (10 tests) and the
+  ungated reference tests; `pytest -m "not gpu"` runs 22 tests without CUDA.
+- **CUDA-event benchmark harness with full JSON output** — `bench/compare_rmsnorm.py`,
+  `bench/compare_attention.py`; records version/driver/GPU metadata, every
+  sample, min/median/mean/max, p05/p95, allocator peaks and error bounds.
+- **CI that separates CPU from GPU** — `.github/workflows/ci.yml`: a hosted
+  CPU-only job, an opt-in self-hosted RTX 4060 job, and
+  `.github/scripts/check-cpu-coverage.py` which fails if the CPU job stops
+  covering a CPU-capable kernel module.
+- **Recorded evidence** — `EVIDENCE.md` plus raw JSON and the reproduction log in
+  `evidence/2026-11-21-rtx4060/`.
 
-- Linux, Python 3.12, PyTorch 2.15.
-- GPU path: NVIDIA driver + CUDA-enabled PyTorch (benchmarked on an RTX 4060).
-- CPU-only machines run the reference tests; the fused kernel test skips cleanly.
+## Quick start
 
-## Reproducible environment
-
-The lock file records exact package versions and hashes. These commands use `uv`'s managed Python 3.12 and keep both environments inside this repository. No Nix or system Python changes are needed.
-
-```bash
+```sh
 uv python install 3.12
 uv sync --python 3.12 --frozen --extra bench --group dev --no-group jax
-# Optional, separately resolved dependency group (CUDA 13 build):
-uv sync --python 3.12 --frozen --extra bench --group dev --group jax
+.venv/bin/python -m pytest -q                 # CPU + GPU when CUDA is available
+.venv/bin/python -m pytest -q -m "not gpu"    # CPU only
 ```
 
-The base environment contains `torch==2.15.0`, `triton==3.9.0`, and `numpy==2.5.5`. The separately selectable JAX group resolves compatibly with these versions (`jax==0.12.1`). `uv sync --group jax` replaces the environment's selected dependency set, so rerun the base `--no-group jax` command to remove it. JAX is never needed for the reference/Triton/SDPA tests.
+A deliberately CPU-only environment (also proves CUDA tests are not silently
+passing on a CUDA wheel):
 
-For a deliberately CPU-only test environment (also proves CUDA tests are not silently skipped by an unexpected CUDA wheel):
-
-```bash
+```sh
 uv venv --python 3.12 .venv-cpu
-uv pip install --python .venv-cpu/bin/python torch==2.15.0 --index-url https://download.pytorch.org/whl/cpu
+uv pip install --python .venv-cpu/bin/python torch==2.15.0 \
+  --index-url https://download.pytorch.org/whl/cpu
 uv pip install --python .venv-cpu/bin/python -e . --group dev
-.venv-cpu/bin/python -c 'import torch; assert not torch.cuda.is_available(); assert torch.version.cuda is None'
+.venv-cpu/bin/python -c 'import torch; assert not torch.cuda.is_available()'
 .venv-cpu/bin/python -m pytest -q -m "not gpu"
 ```
 
-`pytest -q` in a CUDA environment runs CPU and GPU parity tests. `pytest -q -m gpu` explicitly selects GPU tests. A skipped GPU test is not evidence of GPU correctness.
+## Verification
 
-## Benchmarks: complete raw evidence
+Run on this host (NVIDIA RTX 4060 Laptop, driver 620.70.06, Python 3.12.16,
+torch 2.15.0+cu132, Triton 3.9.0):
 
-The benchmark commands below require an actual CUDA device; they fail instead of replacing GPU measurements with CPU results. Each emits complete JSON, and `--output` persists it. Records include Python/PyTorch/Triton versions, GPU name/capability/memory/driver, per-iteration CUDA-event timings, min/median/mean/max, sample standard deviation, p05/p95, PyTorch CUDA allocator peaks, and actual numerical error bounds.
-
-```bash
-.venv/bin/python -m bench.compare_rmsnorm --rows 4096 --cols 4096 --dtype float16 \
-  --backend all --warmup 10 --iterations 100 \
-  --output evidence/rtx4060/rmsnorm-fp16.json
-.venv/bin/python -m bench.compare_attention --batch 4 --heads 16 --seq 1024 --head-dim 64 \
-  --dtype float16 --backend all --warmup 10 --iterations 50 \
-  --output evidence/rtx4060/attention-fp16.json
-# Add --causal for the causal-attention configuration.
+```sh
+.venv/bin/python -m pytest -q
+.venv-cpu/bin/python -m pytest -q -m "not gpu"
+.venv-cpu/bin/python .github/scripts/check-cpu-coverage.py
 ```
 
-The parity check runs before timing, so initial JIT compilation is outside both warm-up and timed samples. JAX calls are explicitly awaited for completion. CUDA events measure callable execution on the current CUDA stream, not full training-step wall time. Peak allocator statistics are process-relative, reset after warm-up, and are not exclusive whole-GPU memory usage. `samples_ms` retains every sample rather than reporting only a median. The original RMSNorm benchmark used `weight = ones`; this is retained for comparability, while the CUDA parity tests exercise varying weights.
+Observed: **54 passed, 0 failed** in the CUDA environment (22 CPU + 32 GPU
+parity tests); **22 passed, 32 deselected** in the CPU-only environment; the
+coverage check reports `22 CPU-selected tests cover 3 kernel modules` and exits
+0. A skipped GPU test is not evidence of GPU correctness.
 
-CI's `CPU-only correctness` job uses an explicit CPU-only wheel on GitHub-hosted Ubuntu. The `CUDA correctness` job is manual-dispatch-only and requires a self-hosted runner labeled `gpu` and `rtx4060`; it is not a hosted-GPU claim. See `EVIDENCE.md` for measured local results and raw JSON paths.
+## Benchmarks
 
-## Roadmap (unscripted — recorded as it actually happens)
+Measured medians, RTX 4060 Laptop (8.0 GiB, capability 8.9), driver 620.70.06,
+torch 2.15.0+cu132, Triton 3.9.0, CUDA 13.2. Warm-up 10 iterations, 100 timed
+iterations for RMSNorm, CUDA events, median of every retained sample. Raw JSON is
+in `evidence/2026-11-21-rtx4060/raw/`; the earlier tables and reproduction
+commands are in `EVIDENCE.md`.
 
-- [x] RMSNorm: reference + Triton fused kernel, CPU correctness test, CUDA-gated parity test
-- [x] Verified RTX 4060 timings (see `EVIDENCE.md`, 2026-11-16)
-- [x] JAX 0.12.0.1 + CUDA 13 plugin recognized the GPU (`CudaDevice(id=0)`)
-- [x] JAX reference path for the same kernel semantics (`rmsnorm_jax`, `rmsnorm_jax_jit`)
-- [x] Cross-implementation parity tests (Triton / torch.compile / JAX vs reference) — 2026-11-16, `pytest -q` 18 passed
-- [x] Four-backend benchmark recorded with reproduction commands (`EVIDENCE.md`, 2026-11-16)
-- [x] Fused attention (FlashAttention-2-style online softmax, causal support) vs naive reference and SDPA — `EVIDENCE.md`, 2026-11-16
-- [ ] cuBLAS `torch.compile` vs hand-written Triton reductions
-- [ ] BF16 vs FP32 precision/throughput surface
+RMSNorm, 4096×4096, float16:
+
+| Backend | Median |
+|---|---:|
+| PyTorch reference (unfused) | 3.706 ms |
+| Triton fused | 0.330 ms |
+| `torch.compile` | 0.337 ms |
+| JAX/XLA (`jit`) | 0.534 ms |
+
+Attention forward, batch 4 × 16 heads × 1024 seq × 64 head-dim, float16:
+
+| Configuration | Reference | SDPA | Triton fused |
+|---|---:|---:|---:|
+| non-causal | 9.25 ms | 0.614 ms | 0.617 ms |
+| causal | 12.92 ms | **0.372 ms** | 0.632 ms |
+
+Limitations: one GPU, one set of shapes, kernel-only time from CUDA events (not
+full training-step wall time), and allocator peaks are process-relative. Triton
+matches SDPA within ~1% on the non-causal fp16 case but trails it on causal and
+on head-dim 128; the kernel is correct, not vendor-tuned. JAX numbers differ
+between recorded runs; no universal backend ranking is claimed.
+
+## Architecture
+
+```
+src/sifr_ml_systems/kernels/rmsnorm.py          reference RMSNorm
+src/sifr_ml_systems/kernels/rmsnorm_triton.py   fused Triton kernel
+src/sifr_ml_systems/kernels/rmsnorm_torch.py    torch.compile baseline
+src/sifr_ml_systems/kernels/rmsnorm_jax.py      JAX reference / jit
+src/sifr_ml_systems/kernels/attention.py        naive attention reference
+src/sifr_ml_systems/kernels/attention_triton.py online-softmax fused attention
+src/sifr_ml_systems/bench.py                   benchmark measurement helpers
+bench/                                          CLI comparators, JSON output
+tests/                                          CPU and CUDA-gated parity suites
+evidence/                                       raw benchmark and correctness JSON
+```
+
+## Limitations
+
+- Two kernels only; no training loop, optimizer, dataloader or model runtime.
+- GPU correctness is proven on the tested RTX 4060 class device only; other
+  architectures are unverified.
+- Benchmarks are kernel-level and shape-specific; do not extrapolate them to
+  end-to-end transformer throughput.
+- The CUDA CI job requires a self-hosted runner and is opt-in, not a hosted-GPU claim.
+- JAX is optional and absent from the default environment; JAX tests and the JAX
+  benchmark skip when it is not installed.
+
+## Roadmap (NOT IMPLEMENTED)
+
+- cuBLAS/`torch.compile` vs hand-written Triton reductions on more shapes.
+- A systematic BF16 vs FP32 precision/throughput surface.
+- Additional kernels (layernorm variants, softmax, GEMM epilogues).
+- Multi-GPU and non-NVIDIA architecture coverage.
 
 ## License
 
-No license declared yet. The owner will select one before public release.
+MIT — see `LICENSE`.

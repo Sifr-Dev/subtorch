@@ -1,9 +1,16 @@
 {
-  "name": "subtorch",
-  "description": "Reference ML kernels (RMSNorm, fused attention) with cross-framework evidence",
+  "name": "Darkmatter",
+  "displayName": "Darkmatter",
+  "former_name": "subtorch",
+  "package": "sifr-ml-systems",
+  "description": "Reference ML kernels (RMSNorm, fused attention) with cross-framework parity and reproducible benchmark evidence",
+  "summary": "Hardware-aware GPU kernel work: Triton RMSNorm and FlashAttention-style attention compared against PyTorch, torch.compile, JAX and SDPA, with raw JSON evidence.",
   "stack": [
     "python"
   ],
   "status": "experimental",
-  "primary_language": "Python"
+  "primary_language": "Python",
+  "license": "MIT",
+  "test_count": 54,
+  "repository": "https://github.com/Sifr-Dev/Darkmatter"
 }

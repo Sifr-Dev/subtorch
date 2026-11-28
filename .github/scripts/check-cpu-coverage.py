@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Fail if a CPU-only run silently stops covering a kernel module.
 
-32 of this project's 44 tests are gated on `torch.cuda.is_available()`, so the
+32 of this project's 54 tests are gated on `torch.cuda.is_available()`, so the
 CPU-only job is the only thing that runs on a stock runner. If a module loses
 its last ungated test, the job still passes while covering nothing. This check
 requires that every module under src/sifr_ml_systems/kernels/ that a CPU test

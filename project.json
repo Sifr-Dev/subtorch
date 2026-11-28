@@ -1,0 +1,9 @@
+{
+  "name": "subtorch",
+  "description": "Reference ML kernels (RMSNorm, fused attention) with cross-framework evidence",
+  "stack": [
+    "python"
+  ],
+  "status": "experimental",
+  "primary_language": "Python"
+}
